@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Portal de RRHH</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <!-- Iconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    /* =========================================================
+       TOKENS DE DISEÑO
+    ========================================================= */
+    :root {
+      --gold:        #c9a84c;
+      --gold-light:  #e8c96a;
+      --dark-bg:     #0d0d0d;
+      --panel-bg:    #141428;
+      --sidebar-bg:  #0f0f1e;
+      --card-bg:     #1c1c38;
+      --border:      #2a2a4a;
+      --text:        #e8e8f0;
+      --text-muted:  #8888aa;
+      --accent:      #4a90e2;
+      --accent-glow: rgba(74,144,226,0.25);
+      --radius:      12px;
+      --transition:  0.3s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* =========================================================
+       RESET & BASE
+    ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: var(--dark-bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* =========================================================
+       HEADER
+    ========================================================= */
+    header {
+      background: linear-gradient(135deg, #0a0a18 0%, #1a1a3e 50%, #0a0a18 100%);
+      border-bottom: 2px solid var(--gold);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      color: var(--gold);
+      letter-spacing: 2px;
+      text-shadow: 0 0 30px rgba(201,168,76,0.4);
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4caf50;
+      box-shadow: 0 0 8px #4caf50;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    /* =========================================================
+       LAYOUT PRINCIPAL
+    ========================================================= */
+    .app-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      height: calc(100vh - 65px);
+    }
+
+    /* =========================================================
+       SIDEBAR
+    ========================================================= */
+    .sidebar {
+      width: 290px;
+      min-width: 290px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width var(--transition), min-width var(--transition);
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      min-width: 0;
+    }
+
+    .sidebar-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sidebar-header span {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--gold);
+      text-transform: uppercase;
+    }
+
+    /* Buscador en sidebar */
+    .sidebar-search {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .sidebar-search input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 36px 8px 14px;
+      color: var(--text);
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .sidebar-search input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .sidebar-search .search-icon {
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    /* Árbol de gerencias */
+    .tree-container {
+      overflow-y: auto;
+      flex: 1;
+      padding: 8px 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .tree-container::-webkit-scrollbar { width: 4px; }
+    .tree-container::-webkit-scrollbar-track { background: transparent; }
+    .tree-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Gerencia (grupo) */
+    .gerencia-group { border-bottom: 1px solid rgba(42,42,74,0.5); }
+
+    .gerencia-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 18px;
+      cursor: pointer;
+      user-select: none;
+      transition: background var(--transition);
+      position: relative;
+    }
+
+    .gerencia-header:hover { background: rgba(201,168,76,0.07); }
+
+    .gerencia-header.active { background: rgba(74,144,226,0.1); }
+
+    .gerencia-header .g-icon {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      flex-shrink: 0;
+      transition: transform var(--transition);
+    }
+
+    .gerencia-header.open .g-icon { transform: scale(1.5); background: var(--accent); }
+
+    .gerencia-header .g-name {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .gerencia-header .g-count {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.06);
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .gerencia-header .chevron {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      transition: transform var(--transition);
+    }
+
+    .gerencia-header.open .chevron { transform: rotate(90deg); }
+
+    /* Empleados dentro de la gerencia */
+    .empleados-list {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+    }
+
+    .empleados-list.open { max-height: 600px; }
+
+    .empleado-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 18px 9px 34px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border-left: 3px solid transparent;
+      transition: all var(--transition);
+      position: relative;
+    }
+
+    .empleado-item::before {
+      content: '';
+      width: 16px;
+      height: 1px;
+      background: var(--border);
+      position: absolute;
+      left: 18px;
+    }
+
+    .empleado-item:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.04);
+      border-left-color: var(--gold);
+    }
+
+    .empleado-item.selected {
+      color: var(--gold-light);
+      background: rgba(201,168,76,0.12);
+      border-left-color: var(--gold);
+      font-weight: 500;
+    }
+
+    .emp-avatar-sm {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #7b4fcf);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================
+       PANEL PRINCIPAL (DERECHO)
+    ========================================================= */
+    .main-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px;
+      background: var(--panel-bg);
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .main-panel::-webkit-scrollbar { width: 5px; }
+    .main-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Barra superior del panel */
+    .panel-topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .toggle-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+
+    .toggle-btn:hover { background: rgba(201,168,76,0.15); color: var(--gold); border-color: var(--gold); }
+
+    .panel-search-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    .panel-search-wrap input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 44px 10px 18px;
+      color: var(--text);
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .panel-search-wrap input::placeholder { color: var(--text-muted); }
+    .panel-search-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .panel-search-wrap i {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    .results-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* =========================================================
+       TARJETA DE EMPLEADO SELECCIONADO
+    ========================================================= */
+    .emp-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 28px;
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+      animation: slideIn 0.35s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .emp-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), var(--accent), var(--gold));
+      background-size: 200%;
+      animation: shimmer 3s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .emp-photo-wrap {
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .emp-photo {
+      width: 130px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      display: block;
+    }
+
+    .emp-photo-placeholder {
+      width: 130px;
+      height: 150px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2a2a5a, #1a3a6a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--border);
+    }
+
+    .emp-photo-placeholder i {
+      font-size: 3.5rem;
+      color: rgba(255,255,255,0.2);
+    }
+
+    .emp-details {
+      flex: 1;
+    }
+
+    .emp-name-main {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.2;
+    }
+
+    .emp-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(201,168,76,0.15);
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--gold-light);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+
+    .emp-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .info-field {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .info-field label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.67rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .info-field label i {
+      color: var(--gold);
+      font-size: 0.75rem;
+    }
+
+    .info-field .value {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .info-field .value a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .info-field .value a:hover { text-decoration: underline; }
+
+    /* =========================================================
+       GRID DE EMPLEADOS
+    ========================================================= */
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .emp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px;
+    }
+
+    .emp-tile {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 16px;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .emp-tile::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--gold), var(--accent));
+      transform: scaleX(0);
+      transition: transform var(--transition);
+    }
+
+    .emp-tile:hover {
+      border-color: var(--gold);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+
+    .emp-tile:hover::after { transform: scaleX(1); }
+
+    .emp-tile.selected-tile {
+      border-color: var(--gold);
+      background: rgba(201,168,76,0.08);
+    }
+
+    .tile-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #7b4fcf);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: white;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tile-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .tile-gerencia {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    .tile-puesto {
+      font-size: 0.72rem;
+      color: var(--gold-light);
+      background: rgba(201,168,76,0.1);
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+
+    /* =========================================================
+       EMPTY STATE / LOADER
+    ========================================================= */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 14px;
+      display: block;
+      color: var(--border);
+    }
+
+    .empty-state p { font-size: 0.9rem; }
+
+    .loader-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      gap: 18px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* =========================================================
+       ESTADÍSTICAS RÁPIDAS (stats bar)
+    ========================================================= */
+    .stats-bar {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .stat-icon {
+      width: 38px; height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .stat-icon.gold   { background: rgba(201,168,76,0.15);  color: var(--gold); }
+    .stat-icon.blue   { background: rgba(74,144,226,0.15);  color: var(--accent); }
+    .stat-icon.purple { background: rgba(123,79,207,0.15);  color: #a67cf0; }
+
+    .stat-info .num  { font-size: 1.4rem; font-weight: 700; line-height: 1; }
+    .stat-info .lbl  { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+    @media (max-width: 768px) {
+      .sidebar { position: fixed; left: 0; top: 65px; height: calc(100vh - 65px); z-index: 90; }
+      .sidebar.collapsed { transform: translateX(-100%); width: 290px; min-width: 290px; }
+      .sidebar:not(.collapsed) { transform: translateX(0); }
+      .emp-card { flex-direction: column; align-items: center; }
+      .emp-photo, .emp-photo-placeholder { width: 100px; height: 115px; }
+      .emp-name-main { font-size: 1.2rem; }
+      .main-panel { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================
+       HEADER
+  ========================================================= -->
+  <header>
+    <h1><i class="fa-solid fa-building-user" style="color:var(--gold-light);margin-right:12px;font-size:1.4rem;"></i>Portal de RRHH</h1>
+    <div class="header-meta">
+      <div class="status-dot"></div>
+      <span>Conectado a Google Sheets</span>
+      <span id="last-update" style="display:none;">· Actualizado <span id="update-time"></span></span>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       CUERPO
+  ========================================================= -->
+  <div class="app-body">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span>Gerencias</span>
+        <button class="toggle-btn" id="collapse-btn" title="Ocultar panel" style="width:28px;height:28px;font-size:0.7rem;">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+      </div>
+      <div class="sidebar-search">
+        <input type="text" id="sidebar-search" placeholder="Buscar empleado..."/>
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      </div>
+      <div class="tree-container" id="tree-container">
+        <!-- Se genera dinámicamente -->
+      </div>
+    </aside>
+
+    <!-- PANEL PRINCIPAL -->
+    <main class="main-panel" id="main-panel">
+
+      <!-- TOPBAR -->
+      <div class="panel-topbar">
+        <button class="toggle-btn" id="show-btn" title="Mostrar panel">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="panel-search-wrap">
+          <input type="text" id="panel-search" placeholder="Buscar por nombre, gerencia o puesto..."/>
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <span class="results-count" id="results-count"></span>
+      </div>
+
+      <!-- CONTENIDO DINÁMICO -->
+      <div id="content-area">
+        <div class="loader-wrap">
+          <div class="spinner"></div>
+          <span>Cargando datos desde Google Sheets…</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /* =========================================================
+       CONFIGURACIÓN — CONEXIÓN CON GOOGLE SHEETS
+       Cambia SHEET_URL para apuntar a otro CSV publicado
+    ========================================================= */
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSbiGYDomsz2mqSLyDyqMSzS3VIrbJVqBoxwy8vEqgt9UpmnxrArLGb9Euj6MCzIpQuxIEm6ZEP4-BB/pub?gid=1688742025&single=true&output=csv";
+
+    /* =========================================================
+       ESTADO GLOBAL
+    ========================================================= */
+    let allData        = [];   // Todos los empleados
+    let filteredData   = [];   // Empleados visibles (filtrados)
+    let selectedId     = null; // ID del empleado seleccionado
+    let gerencias      = {};   // Agrupación por gerencia
+
+    /* =========================================================
+       FETCH: carga los datos CSV desde Google Sheets
+    ========================================================= */
+    async function loadData() {
+      try {
+        const res  = await fetch(SHEET_URL + "&cachebust=" + Date.now());
+        const text = await res.text();
+        allData = parseCSV(text);
+
+        if (allData.length === 0) throw new Error("Sin datos");
+
+        // Actualizar timestamp
+        document.getElementById("update-time").textContent = new Date().toLocaleTimeString('es-HN', {hour:'2-digit',minute:'2-digit'});
+        document.getElementById("last-update").style.display = "";
+
+        buildGerencias();
+        renderSidebar();
+        filteredData = [...allData];
+        renderContent();
+
+      } catch (e) {
+        document.getElementById("content-area").innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <p><strong>No se pudieron cargar los datos.</strong><br>Verifica que la URL de Google Sheets sea pública y esté publicada como CSV.</p>
+          </div>`;
+        console.error("Error cargando Google Sheets:", e);
+      }
+    }
+
+    /* =========================================================
+       PARSEO CSV — procesa el texto CSV en objetos JSON
+       Detecta automáticamente los encabezados de la primera fila
+    ========================================================= */
+    function parseCSV(text) {
+      const lines = text.trim().split(/\r?\n/);
+      if (lines.length < 2) return [];
+
+      // Normalizar encabezados: minúsculas, sin tildes, sin espacios
+      const headers = lines[0].split(",").map(h =>
+        h.trim().toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, "_")
+      );
+
+      return lines.slice(1).map((line, idx) => {
+        // Parseo básico respetando comillas
+        const cols = [];
+        let cur = "", inQ = false;
+        for (const ch of line) {
+          if (ch === '"') { inQ = !inQ; }
+          else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ""; }
+          else { cur += ch; }
+        }
+        cols.push(cur.trim());
+
+        const obj = { _id: idx };
+        headers.forEach((h, i) => { obj[h] = cols[i] || ""; });
+        return obj;
+      }).filter(r => Object.values(r).some(v => v && v !== String(r._id)));
+    }
+
+    /* =========================================================
+       AGRUPACIÓN POR GERENCIA
+    ========================================================= */
+    function buildGerencias() {
+      gerencias = {};
+      allData.forEach(emp => {
+        // Busca columnas que puedan contener gerencia
+        const g = emp.gerencia || emp.area || emp.departamento || emp.department || "Sin gerencia";
+        if (!gerencias[g]) gerencias[g] = [];
+        gerencias[g].push(emp);
+      });
+    }
+
+    /* =========================================================
+       NOMBRE DEL EMPLEADO — resuelve la columna correcta
+    ========================================================= */
+    function empName(emp) {
+      return emp.nombre_completo || emp.nombre || emp.name || emp.empleado || "Sin nombre";
+    }
+
+    function empPuesto(emp) {
+      return emp.puesto || emp.cargo || emp.posicion || emp.position || emp.titulo || "";
+    }
+
+    function empCorreo(emp) {
+      return emp.correo || emp.email || emp.correo_electronico || "";
+    }
+
+    function initials(name) {
+      return name.split(" ").slice(0,2).map(w => w[0] || "").join("").toUpperCase() || "?";
+    }
+
+    /* =========================================================
+       RENDER SIDEBAR — árbol de gerencias
+    ========================================================= */
+    function renderSidebar(filterText = "") {
+      const container = document.getElementById("tree-container");
+      const ft = filterText.toLowerCase();
+
+      let html = "";
+      let firstOpen = true;
+
+      Object.entries(gerencias).forEach(([g, emps]) => {
+        const visible = ft
+          ? emps.filter(e => empName(e).toLowerCase().includes(ft))
+          : emps;
+
+        if (ft && visible.length === 0) return;
+
+        const isOpen = ft ? true : firstOpen;
+        firstOpen = false;
+
+        html += `<div class="gerencia-group">
+          <div class="gerencia-header ${isOpen?'open':''}" data-g="${encodeURIComponent(g)}">
+            <span class="g-icon"></span>
+            <span class="g-name">${g}</span>
+            <span class="g-count">${visible.length}</span>
+            <i class="fa-solid fa-chevron-right chevron"></i>
+          </div>
+          <div class="empleados-list ${isOpen?'open':''}">`;
+
+        visible.forEach(emp => {
+          const name = empName(emp);
+          const inis = initials(name);
+          html += `<div class="empleado-item ${emp._id===selectedId?'selected':''}" data-id="${emp._id}">
+            <div class="emp-avatar-sm">${inis}</div>
+            <span>${name}</span>
+          </div>`;
+        });
+
+        html += `</div></div>`;
+      });
+
+      if (!html) html = `<div class="empty-state" style="padding:30px 16px;"><i class="fa-solid fa-user-slash"></i><p>Sin resultados</p></div>`;
+      container.innerHTML = html;
+
+      // Eventos gerencia (toggle)
+      container.querySelectorAll(".gerencia-header").forEach(h => {
+        h.addEventListener("click", () => {
+          h.classList.toggle("open");
+          h.nextElementSibling.classList.toggle("open");
+        });
+      });
+
+      // Eventos empleado (seleccionar)
+      container.querySelectorAll(".empleado-item").forEach(item => {
+        item.addEventListener("click", () => {
+          selectedId = parseInt(item.dataset.id);
+          document.getElementById("panel-search").value = "";
+          filteredData = [...allData];
+          renderContent();
+          renderSidebar(document.getElementById("sidebar-search").value);
+        });
+      });
+    }
+
+    /* =========================================================
+       RENDER CONTENIDO PRINCIPAL
+    ========================================================= */
+    function renderContent() {
+      const area = document.getElementById("content-area");
+      const emp  = selectedId !== null ? allData.find(e => e._id === selectedId) : null;
+
+      // Estadísticas globales
+      const statsHTML = `
+        <div class="stats-bar">
+          <div class="stat-card">
+            <div class="stat-icon gold"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info">
+              <div class="num">${allData.length}</div>
+              <div class="lbl">Empleados</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-sitemap"></i></div>
+            <div class="stat-info">
+              <div class="num">${Object.keys(gerencias).length}</div>
+              <div class="lbl">Gerencias</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa-solid fa-briefcase"></i></div>
+            <div class="stat-info">
+              <div class="num">${[...new Set(allData.map(e => empPuesto(e)).filter(Boolean))].length}</div>
+              <div class="lbl">Puestos</div>
+            </div>
+          </div>
+        </div>`;
+
+      // Tarjeta del empleado seleccionado
+      const cardHTML = emp ? buildEmpCard(emp) : "";
+
+      // Título de sección grid
+      const gridTitle = emp
+        ? `Otros en ${emp.gerencia || emp.area || "la empresa"}`
+        : "Todos los empleados";
+
+      // Empleados para el grid (excluye el seleccionado)
+      const gridEmps = filteredData.filter(e => e._id !== selectedId);
+
+      document.getElementById("results-count").textContent =
+        `${filteredData.length} resultado${filteredData.length!==1?'s':''}`;
+
+      area.innerHTML = statsHTML + cardHTML + `
+        <div class="section-title">${gridTitle}</div>
+        <div class="emp-grid" id="emp-grid">
+          ${gridEmps.length ? gridEmps.map(buildEmpTile).join("") :
+            `<div class="empty-state" style="grid-column:1/-1"><i class="fa-solid fa-face-meh"></i><p>No hay empleados que coincidan.</p></div>`}
+        </div>`;
+
+      // Eventos en los tiles
+      area.querySelectorAll(".emp-tile").forEach(tile => {
+        tile.addEventListener("click", () => {
+          selectedId = parseInt(tile.dataset.id);
+          document.getElementById("panel-search").value = "";
+          filteredData = [...allData];
+          renderContent();
+          renderSidebar(document.getElementById("sidebar-search").value);
+          document.querySelector(".main-panel").scrollTo({top:0, behavior:'smooth'});
+        });
+      });
+    }
+
+    /* =========================================================
+       CONSTRUIR TARJETA EMPLEADO (grande)
+    ========================================================= */
+    function buildEmpCard(emp) {
+      const name    = empName(emp);
+      const puesto  = empPuesto(emp);
+      const correo  = empCorreo(emp);
+      const gerencia = emp.gerencia || emp.area || emp.departamento || "";
+
+      // Campos extra dinámicos: muestra cualquier columna que tenga valor
+      const reserved = new Set(["_id","nombre","nombre_completo","name","empleado","gerencia","area","departamento","department","puesto","cargo","posicion","position","titulo","correo","email","correo_electronico","foto","photo","imagen","image"]);
+      const extra = Object.entries(emp)
+        .filter(([k,v]) => !reserved.has(k) && v && v.trim() !== "")
+        .slice(0,6);
+
+      const fotoKey = Object.keys(emp).find(k => ["foto","photo","imagen","image"].includes(k));
+      const fotoUrl = fotoKey ? emp[fotoKey] : "";
+
+      const photoHTML = fotoUrl
+        ? `<img class="emp-photo" src="${fotoUrl}" alt="${name}" onerror="this.outerHTML='<div class=\\'emp-photo-placeholder\\'><i class=\\'fa-solid fa-user-tie\\'></i></div>'">`
+        : `<div class="emp-photo-placeholder"><i class="fa-solid fa-user-tie"></i></div>`;
+
+      return `
+        <div class="emp-card">
+          <div class="emp-photo-wrap">${photoHTML}</div>
+          <div class="emp-details">
+            <div class="emp-name-main">${name}</div>
+            ${puesto ? `<div class="emp-badge"><i class="fa-solid fa-id-badge"></i>${puesto}</div>` : ""}
+            <div class="emp-info-grid">
+              ${gerencia ? `<div class="info-field">
+                <label><i class="fa-solid fa-building"></i>Gerencia</label>
+                <div class="value">${gerencia}</div>
+              </div>` : ""}
+              ${correo ? `<div class="info-field">
+                <label><i class="fa-solid fa-envelope"></i>Correo</label>
+                <div class="value"><a href="mailto:${correo}">${correo}</a></div>
+              </div>` : ""}
+              ${extra.map(([k,v]) => `
+                <div class="info-field">
+                  <label><i class="fa-solid fa-circle-info"></i>${k.replace(/_/g," ")}</label>
+                  <div class="value">${v}</div>
+                </div>`).join("")}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    /* =========================================================
+       CONSTRUIR TILE EMPLEADO (grid)
+    ========================================================= */
+    function buildEmpTile(emp) {
+      const name    = empName(emp);
+      const puesto  = empPuesto(emp);
+      const gerencia = emp.gerencia || emp.area || emp.departamento || "";
+      return `
+        <div class="emp-tile ${emp._id===selectedId?'selected-tile':''}" data-id="${emp._id}">
+          <div class="tile-avatar">${initials(name)}</div>
+          <div class="tile-name">${name}</div>
+          ${gerencia ? `<div class="tile-gerencia"><i class="fa-solid fa-building" style="margin-right:4px;font-size:0.65rem;"></i>${gerencia}</div>` : ""}
+          ${puesto   ? `<div class="tile-puesto">${puesto}</div>` : ""}
+        </div>`;
+    }
+
+    /* =========================================================
+       BÚSQUEDA — panel principal
+    ========================================================= */
+    document.getElementById("panel-search").addEventListener("input", function () {
+      const q = this.value.toLowerCase();
+      selectedId = null;
+      filteredData = q
+        ? allData.filter(e =>
+            empName(e).toLowerCase().includes(q) ||
+            (e.gerencia||"").toLowerCase().includes(q) ||
+            (e.area||"").toLowerCase().includes(q) ||
+            empPuesto(e).toLowerCase().includes(q) ||
+            empCorreo(e).toLowerCase().includes(q)
+          )
+        : [...allData];
+      renderContent();
+    });
+
+    /* =========================================================
+       BÚSQUEDA — sidebar
+    ========================================================= */
+    document.getElementById("sidebar-search").addEventListener("input", function () {
+      renderSidebar(this.value);
+    });
+
+    /* =========================================================
+       TOGGLE SIDEBAR
+    ========================================================= */
+    const sidebar    = document.getElementById("sidebar");
+    const collapseBtn = document.getElementById("collapse-btn");
+    const showBtn    = document.getElementById("show-btn");
+
+    collapseBtn.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
+    showBtn.addEventListener("click",    () => sidebar.classList.remove("collapsed"));
+
+    /* =========================================================
+       ARRANQUE
+    ========================================================= */
+    loadData();
+  </script>
+</body>
+</html>
